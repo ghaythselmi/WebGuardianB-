@@ -21,6 +21,10 @@ services:
     GuzzleHttp\Client:
         arguments:
             $config: []
+
+    App\Service\AuthTokenService:
+        arguments:
+            $secret: '%env(APP_SECRET)%'
     
 
     # add more service definitions when explicit configuration is needed
