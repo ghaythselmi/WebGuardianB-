@@ -1,0 +1,8 @@
+<?php
+namespace App\Entity;
+
+/**
+ * Stub — kept to avoid autoloader conflicts with the old repository.
+ * The actual monitoring logic lives in App\Service\WebsiteMonitorService.
+ */
+class WebsiteMonitorService {}

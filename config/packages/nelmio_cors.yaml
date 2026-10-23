@@ -1,13 +1,17 @@
 nelmio_cors:
     defaults:
-        allow_origin: ['http://localhost:4200']
+        # The Angular dev server may be opened through localhost or 127.0.0.1,
+        # and Symfony's local server can expose the API over either scheme.
+        origin_regex: true
+        allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:\d+)?$']
         allow_credentials: true
         allow_headers: ['content-type', 'authorization']
         expose_headers: ['link']
         max_age: 3600
     paths:
         '^/api/':
-            allow_origin: ['http://localhost:4200']
+            origin_regex: true
+            allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:\d+)?$']
             allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'DELETE']
             allow_headers: ['content-type', 'authorization']
             max_age: 3600
