@@ -101,6 +101,7 @@ class UserController extends AbstractController
         if (isset($data['username']) && is_string($data['username'])) $user->setUsername(trim($data['username']));
         if (isset($data['email']) && is_string($data['email']) && filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $user->setEmail(trim($data['email']));
         if (isset($data['password']) && is_string($data['password']) && strlen($data['password']) >= 8) $user->setPassword(password_hash($data['password'], PASSWORD_DEFAULT));
+        if (array_key_exists('emailAlertsEnabled', $data) && is_bool($data['emailAlertsEnabled'])) $user->setEmailAlertsEnabled($data['emailAlertsEnabled']);
         $entityManager->flush();
 
         return new JsonResponse($this->serializeUser($user));
@@ -124,6 +125,6 @@ class UserController extends AbstractController
 
     private function serializeUser(User $user): array
     {
-        return ['id' => $user->getId(), 'username' => $user->getUsername(), 'email' => $user->getEmail(), 'role' => $user->getRole()];
+        return ['id' => $user->getId(), 'username' => $user->getUsername(), 'email' => $user->getEmail(), 'role' => $user->getRole(), 'createdAt' => $user->getCreatedAt()?->format(DATE_ATOM), 'emailAlertsEnabled' => $user->isEmailAlertsEnabled()];
     }
 }

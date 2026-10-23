@@ -56,7 +56,8 @@ class WebsiteMonitorService
             ));
 
             return [
-                'status'           => $statusCode < 400 ? 'Online' : 'Offline',
+                // A 4xx means the server is reachable; reserve Offline for server errors.
+                'status'           => $statusCode < 500 ? 'Online' : 'Offline',
                 'http_code'        => $statusCode,
                 'response_time_ms' => $elapsedMs,
                 'error'            => null,

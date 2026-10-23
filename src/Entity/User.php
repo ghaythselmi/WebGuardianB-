@@ -29,12 +29,19 @@ class User
     #[ORM\Column(length: 255)]
     private ?string $role = null;
 
+    #[ORM\Column(type: 'datetime_immutable')]
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $emailAlertsEnabled = true;
+
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Website::class, cascade: ['persist', 'remove'])]
     private Collection $websites;
 
     public function __construct()
     {
         $this->websites = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -87,6 +94,10 @@ class User
         $this->role = $role;
         return $this;
     }
+
+    public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
+    public function isEmailAlertsEnabled(): bool { return $this->emailAlertsEnabled; }
+    public function setEmailAlertsEnabled(bool $enabled): static { $this->emailAlertsEnabled = $enabled; return $this; }
 
     /**
      * @return Collection<int, Website>

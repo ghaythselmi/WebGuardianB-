@@ -17,10 +17,8 @@ services:
         resource: '../src/'
         exclude:
             - '../src/DependencyInjection/'
+            - '../src/Entity/'
             - '../src/Kernel.php'
-    GuzzleHttp\Client:
-        arguments:
-            $config: []
 
     App\Service\AuthTokenService:
         arguments:

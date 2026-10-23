@@ -7,6 +7,7 @@ use App\Entity\Website;
 use App\Repository\UserRepository;
 use App\Repository\WebsiteRepository;
 use App\Service\AuthTokenService;
+use App\Services\WebsiteMonitorRunner;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +18,7 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/websites')]
 class WebsiteController extends AbstractController
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager, private readonly WebsiteRepository $websites, private readonly AuthTokenService $tokens, private readonly UserRepository $users)
+    public function __construct(private readonly EntityManagerInterface $entityManager, private readonly WebsiteRepository $websites, private readonly AuthTokenService $tokens, private readonly UserRepository $users, private readonly WebsiteMonitorRunner $monitorRunner)
     {
     }
 
@@ -44,15 +45,19 @@ class WebsiteController extends AbstractController
         $user = $this->currentUser($request);
         if ($user instanceof JsonResponse) return $user;
         $data = json_decode($request->getContent(), true);
-        if (!is_array($data) || !is_string($data['url'] ?? null) || !filter_var($data['url'], FILTER_VALIDATE_URL)) {
-            return new JsonResponse(['error' => 'A valid website URL is required'], Response::HTTP_BAD_REQUEST);
+        $url = is_array($data) && is_string($data['url'] ?? null) ? trim($data['url']) : '';
+        if ($url !== '' && !preg_match('~^[a-z][a-z0-9+.-]*://~i', $url)) {
+            $url = 'https://'.$url;
         }
-        if ($this->websites->findOneBy(['user' => $user, 'Url' => $data['url']])) {
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL) || !in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) || !parse_url($url, PHP_URL_HOST)) {
+            return new JsonResponse(['error' => 'Enter a valid website address, such as example.com or https://example.com'], Response::HTTP_BAD_REQUEST);
+        }
+        if ($this->websites->findOneBy(['user' => $user, 'Url' => $url])) {
             return new JsonResponse(['error' => 'This website is already monitored'], Response::HTTP_CONFLICT);
         }
 
         $website = new Website();
-        $website->setUrl($data['url']);
+        $website->setUrl($url);
         $website->setAvailabilty((string) ($data['availability'] ?? 'Unknown'));
         $website->setSSLStatus((string) ($data['ssl_status'] ?? 'Unknown'));
         $website->setExpiresIn((int) ($data['expires_in'] ?? 0));
@@ -60,8 +65,20 @@ class WebsiteController extends AbstractController
         $website->setLastCheck(new \DateTime());
         $this->entityManager->persist($website);
         $this->entityManager->flush();
+        $this->monitorRunner->runOne($website, true);
 
         return new JsonResponse($this->serializeWebsite($website), Response::HTTP_CREATED);
+    }
+
+    #[Route('/{id}/check', name: 'api_website_check_now', methods: ['POST'], requirements: ['id' => '\\d+'])]
+    public function checkNow(int $id, Request $request): JsonResponse
+    {
+        $user = $this->currentUser($request);
+        if ($user instanceof JsonResponse) return $user;
+        $website = $this->ownedWebsite($id, $user);
+        if ($website instanceof JsonResponse) return $website;
+        $this->monitorRunner->runOne($website);
+        return new JsonResponse($this->serializeWebsite($website));
     }
 
     #[Route('/{id}', name: 'api_website_update', methods: ['PUT'], requirements: ['id' => '\\d+'])]
