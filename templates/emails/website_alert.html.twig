@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{{ headline }}</title>
+</head>
+<body style="margin:0;padding:0;background:#070c15;color:#edf5ff;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#070c15;">
+    <tr>
+      <td align="center" style="padding:34px 14px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;border:1px solid #1c2b3c;border-radius:18px;overflow:hidden;background:#0c1421;">
+          <tr>
+            <td style="padding:23px 28px;border-bottom:1px solid #1c2b3c;background:#0a111d;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="middle" style="padding-right:11px;">
+                    <img src="cid:webguardian-shield" width="38" height="38" alt="" style="display:block;width:38px;height:38px;border:0;border-radius:10px;">
+                  </td>
+                  <td valign="middle" style="color:#f3f8ff;font-size:19px;font-weight:700;letter-spacing:-.4px;">
+                    Web<span style="color:#36e4f4;">Guardian</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:13px 0 0;color:#7f93ac;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Website health alert</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 28px 26px;">
+              <span style="display:inline-block;padding:7px 10px;border:1px solid {{ tone }};border-radius:20px;color:{{ tone }};background:{{ toneBackground }};font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">{{ statusLabel }}</span>
+              <h1 style="margin:16px 0 10px;color:#f3f8ff;font-size:25px;line-height:1.25;letter-spacing:-.5px;">{{ headline }}</h1>
+              <p style="margin:0;color:#a6b5c8;font-size:15px;line-height:1.65;">{{ intro }}</p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:24px 0 18px;border:1px solid #213248;border-radius:12px;background:#0a111d;">
+                <tr>
+                  <td style="padding:17px 18px 14px;">
+                    <p style="margin:0 0 7px;color:#8094ad;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">Monitored website</p>
+                    <a href="{{ websiteUrl }}" style="color:#36d9ef;font-size:14px;font-weight:600;line-height:1.55;overflow-wrap:anywhere;text-decoration:none;">{{ websiteUrl }}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:13px 18px;border-top:1px solid #1b293a;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="width:50%;padding-right:10px;">
+                          <p style="margin:0 0 5px;color:#71859f;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Latest result</p>
+                          <p style="margin:0;color:{{ tone }};font-size:13px;font-weight:700;">{{ responseDetail }}</p>
+                        </td>
+                        <td valign="top" style="width:50%;padding-left:10px;">
+                          <p style="margin:0 0 5px;color:#71859f;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Checked at (UTC)</p>
+                          <p style="margin:0;color:#d4e0ef;font-size:12px;line-height:1.5;">{{ checkedAt }}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:18px 0 8px;color:#dfeaf7;font-size:13px;font-weight:700;">Recommended next step</p>
+              <p style="margin:0;color:#98a9be;font-size:13px;line-height:1.65;">{{ nextStep }}</p>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:23px;">
+                <tr>
+                  <td align="center" style="border-radius:9px;background:#19cde5;background-image:linear-gradient(110deg,#36e4f4,#438cff);">
+                    <a href="{{ websiteUrl }}" style="display:inline-block;padding:12px 18px;border:1px solid #36cfe8;border-radius:9px;color:#06101e;font-size:13px;font-weight:700;text-decoration:none;">Open website&nbsp; &#8599;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:17px 28px;border-top:1px solid #1c2b3c;background:#0a111d;">
+              <p style="margin:0;color:#8496ad;font-size:11px;line-height:1.6;">You received this because email alerts are enabled for your WebGuardian account.</p>
+              <p style="margin:7px 0 0;color:#5f738d;font-size:10px;line-height:1.5;">WebGuardian &bull; A clearer view of your website health.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

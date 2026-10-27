@@ -12,7 +12,7 @@ nelmio_cors:
         '^/api/':
             origin_regex: true
             allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:\d+)?$']
-            allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'DELETE']
+            allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
             allow_headers: ['content-type', 'authorization']
             max_age: 3600
 

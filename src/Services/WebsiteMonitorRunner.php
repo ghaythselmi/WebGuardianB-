@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Entity\Website;
 use App\Entity\WebsiteCheck;
+use App\Entity\UserNotification;
 use App\Repository\WebsiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -33,13 +34,13 @@ class WebsiteMonitorRunner
         return $checked;
     }
 
-    public function runOne(Website $website, bool $initialCheck = false): void
+    public function runOne(Website $website, bool $initialCheck = false, bool $notifyIfOffline = false): void
     {
-        $this->check($website, $initialCheck);
+        $this->check($website, $initialCheck, $notifyIfOffline);
         $this->entityManager->flush();
     }
 
-    private function check(Website $website, bool $initialCheck = false): void
+    private function check(Website $website, bool $initialCheck = false, bool $notifyIfOffline = false): void
     {
         $url = (string) $website->getUrl();
         $availability = $this->monitor->checkAvailability($url);
@@ -47,9 +48,9 @@ class WebsiteMonitorRunner
         $headers = $this->monitor->checkSecurityHeaders($url);
         $newState = $availability['status'];
         $oldState = $website->getAvailabilty();
-        if ($initialCheck) {
+        if ($initialCheck && $newState !== 'Offline') {
             $website->setLastAlertedAvailability($newState);
-        } elseif ($website->getLastAlertedAvailability() === null && in_array($oldState, ['Online', 'Offline'], true)) {
+        } elseif (!$initialCheck && $website->getLastAlertedAvailability() === null && $oldState === 'Online') {
             $website->setLastAlertedAvailability($oldState);
         }
         $website->setAvailabilty($newState)
@@ -65,20 +66,19 @@ class WebsiteMonitorRunner
             $headers['present'] ?? [], $headers['missing'] ?? []
         ));
 
-        if ($initialCheck) return;
-
-        $user = $website->getUser();
-        if (!$user) return;
-        if (!$user->isEmailAlertsEnabled()) {
-            $website->setLastAlertedAvailability($newState);
+        if ($initialCheck) {
+            if ($newState === 'Offline') $this->notifyAvailability($website, $newState, true);
             return;
         }
 
-        if ($newState !== $website->getLastAlertedAvailability() && in_array($newState, ['Online', 'Offline'], true)) {
-            $subject = $newState === 'Offline' ? 'Website is offline' : 'Website is back online';
-            $message = sprintf("%s is now %s.\nChecked: %s", $url, strtolower($newState), (new \DateTimeImmutable())->format(DATE_ATOM));
-            $this->sendAlert($website, $subject, $message, function () use ($website, $newState): void { $website->setLastAlertedAvailability($newState); });
+        $user = $website->getUser();
+        if (!$user) return;
+        $stateChanged = $newState !== $website->getLastAlertedAvailability();
+        if (in_array($newState, ['Online', 'Offline'], true) && ($stateChanged || ($notifyIfOffline && $newState === 'Offline'))) {
+            $this->notifyAvailability($website, $newState, $notifyIfOffline && $newState === 'Offline');
         }
+
+        if (!$user->isEmailAlertsEnabled()) return;
 
         $days = $ssl['expires_in_days'];
         $level = match (true) { $days <= 1 => 1, $days <= 7 => 7, $days <= 30 => 30, default => null };
@@ -87,6 +87,32 @@ class WebsiteMonitorRunner
             $this->sendAlert($website, 'SSL certificate expiry warning', $message, function () use ($website, $level): void { $website->setLastSslAlertLevel($level); });
         } elseif ($level === null && $website->getLastSslAlertLevel() !== null) {
             $website->setLastSslAlertLevel(null);
+        }
+    }
+
+    private function notifyAvailability(Website $website, string $state, bool $forceNotification = false): void
+    {
+        $user = $website->getUser();
+        if (!$user) return;
+
+        $url = (string) $website->getUrl();
+        $isOffline = $state === 'Offline';
+        $type = $isOffline ? 'website_down' : 'website_recovered';
+        $title = $isOffline ? 'Website is down' : 'Website is back online';
+        $message = sprintf('%s is now %s.', $url, strtolower($state));
+        $latestNotification = $this->entityManager->getRepository(UserNotification::class)->findOneBy(
+            ['user' => $user, 'websiteUrl' => $url], ['id' => 'DESC']
+        );
+        if ($forceNotification || !$latestNotification || $latestNotification->getType() !== $type) {
+            $this->entityManager->persist(new UserNotification($user, $type, $title, $message, $url));
+        }
+
+        if ($user->isEmailAlertsEnabled()) {
+            $emailMessage = sprintf("%s\nChecked: %s", $message, (new \DateTimeImmutable())->format(DATE_ATOM));
+            $subject = $isOffline ? 'WebGuardian alert: website is down' : 'WebGuardian alert: website is back online';
+            $this->sendAlert($website, $subject, $emailMessage, function () use ($website, $state): void { $website->setLastAlertedAvailability($state); });
+        } else {
+            $website->setLastAlertedAvailability($state);
         }
     }
 

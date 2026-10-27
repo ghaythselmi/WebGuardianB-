@@ -65,7 +65,7 @@ class WebsiteController extends AbstractController
         $website->setLastCheck(new \DateTime());
         $this->entityManager->persist($website);
         $this->entityManager->flush();
-        $this->monitorRunner->runOne($website, true);
+        $this->monitorRunner->runOne($website, true, true);
 
         return new JsonResponse($this->serializeWebsite($website), Response::HTTP_CREATED);
     }
@@ -77,7 +77,7 @@ class WebsiteController extends AbstractController
         if ($user instanceof JsonResponse) return $user;
         $website = $this->ownedWebsite($id, $user);
         if ($website instanceof JsonResponse) return $website;
-        $this->monitorRunner->runOne($website);
+        $this->monitorRunner->runOne($website, false, true);
         return new JsonResponse($this->serializeWebsite($website));
     }
 
