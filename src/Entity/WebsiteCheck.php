@@ -39,7 +39,14 @@ class WebsiteCheck
     #[ORM\Column(length: 2, nullable: true)]
     private ?string $headersGrade = null;
 
-    public function __construct(Website $website, string $availability, ?int $httpStatusCode, ?int $responseTimeMs, string $sslStatus, ?int $sslExpiresInDays, ?int $headersScore, ?string $headersGrade)
+    #[ORM\Column(length: 2048, nullable: true)] private ?string $finalUrl = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $pageTitle = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $sslIssuer = null;
+    #[ORM\Column(length: 40, nullable: true)] private ?string $sslExpiresAt = null;
+    #[ORM\Column(type: 'json', nullable: true)] private ?array $securityHeadersPresent = null;
+    #[ORM\Column(type: 'json', nullable: true)] private ?array $securityHeadersMissing = null;
+
+    public function __construct(Website $website, string $availability, ?int $httpStatusCode, ?int $responseTimeMs, string $sslStatus, ?int $sslExpiresInDays, ?int $headersScore, ?string $headersGrade, ?string $finalUrl = null, ?string $pageTitle = null, ?string $sslIssuer = null, ?string $sslExpiresAt = null, ?array $securityHeadersPresent = null, ?array $securityHeadersMissing = null)
     {
         $this->website = $website;
         $this->checkedAt = new \DateTimeImmutable();
@@ -50,6 +57,12 @@ class WebsiteCheck
         $this->sslExpiresInDays = $sslExpiresInDays;
         $this->headersScore = $headersScore;
         $this->headersGrade = $headersGrade;
+        $this->finalUrl = $finalUrl;
+        $this->pageTitle = $pageTitle;
+        $this->sslIssuer = $sslIssuer;
+        $this->sslExpiresAt = $sslExpiresAt;
+        $this->securityHeadersPresent = $securityHeadersPresent;
+        $this->securityHeadersMissing = $securityHeadersMissing;
     }
 
     public function getCheckedAt(): \DateTimeImmutable { return $this->checkedAt; }
@@ -60,4 +73,10 @@ class WebsiteCheck
     public function getSslExpiresInDays(): ?int { return $this->sslExpiresInDays; }
     public function getHeadersScore(): ?int { return $this->headersScore; }
     public function getHeadersGrade(): ?string { return $this->headersGrade; }
+    public function getFinalUrl(): ?string { return $this->finalUrl; }
+    public function getPageTitle(): ?string { return $this->pageTitle; }
+    public function getSslIssuer(): ?string { return $this->sslIssuer; }
+    public function getSslExpiresAt(): ?string { return $this->sslExpiresAt; }
+    public function getSecurityHeadersPresent(): ?array { return $this->securityHeadersPresent; }
+    public function getSecurityHeadersMissing(): ?array { return $this->securityHeadersMissing; }
 }

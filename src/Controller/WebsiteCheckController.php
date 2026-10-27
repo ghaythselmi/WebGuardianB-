@@ -28,6 +28,10 @@ class WebsiteCheckController extends AbstractController
             'httpStatusCode' => $check->getHttpStatusCode(), 'responseTimeMs' => $check->getResponseTimeMs(),
             'sslStatus' => $check->getSslStatus(), 'sslExpiresInDays' => $check->getSslExpiresInDays(),
             'headersScore' => $check->getHeadersScore(), 'headersGrade' => $check->getHeadersGrade(),
+            'finalUrl' => $check->getFinalUrl(), 'pageTitle' => $check->getPageTitle(),
+            'sslIssuer' => $check->getSslIssuer(), 'sslExpiresAt' => $check->getSslExpiresAt(),
+            'securityHeadersPresent' => $check->getSecurityHeadersPresent(),
+            'securityHeadersMissing' => $check->getSecurityHeadersMissing(),
         ], $checks));
     }
 }

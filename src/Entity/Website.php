@@ -37,6 +37,17 @@ class Website
     #[ORM\Column(nullable: true)]
     private ?int $lastSslAlertLevel = null;
 
+    #[ORM\Column(nullable: true)] private ?int $httpStatusCode = null;
+    #[ORM\Column(nullable: true)] private ?int $responseTimeMs = null;
+    #[ORM\Column(length: 2048, nullable: true)] private ?string $finalUrl = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $pageTitle = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $sslIssuer = null;
+    #[ORM\Column(length: 40, nullable: true)] private ?string $sslExpiresAt = null;
+    #[ORM\Column(type: 'json', nullable: true)] private ?array $securityHeadersPresent = null;
+    #[ORM\Column(type: 'json', nullable: true)] private ?array $securityHeadersMissing = null;
+    #[ORM\Column(nullable: true)] private ?int $headersScore = null;
+    #[ORM\Column(length: 2, nullable: true)] private ?string $headersGrade = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -111,4 +122,28 @@ class Website
     public function setLastAlertedAvailability(?string $state): static { $this->lastAlertedAvailability = $state; return $this; }
     public function getLastSslAlertLevel(): ?int { return $this->lastSslAlertLevel; }
     public function setLastSslAlertLevel(?int $level): static { $this->lastSslAlertLevel = $level; return $this; }
+    public function getHttpStatusCode(): ?int { return $this->httpStatusCode; }
+    public function getResponseTimeMs(): ?int { return $this->responseTimeMs; }
+    public function getFinalUrl(): ?string { return $this->finalUrl; }
+    public function getPageTitle(): ?string { return $this->pageTitle; }
+    public function getSslIssuer(): ?string { return $this->sslIssuer; }
+    public function getSslExpiresAt(): ?string { return $this->sslExpiresAt; }
+    public function getSecurityHeadersPresent(): ?array { return $this->securityHeadersPresent; }
+    public function getSecurityHeadersMissing(): ?array { return $this->securityHeadersMissing; }
+    public function getHeadersScore(): ?int { return $this->headersScore; }
+    public function getHeadersGrade(): ?string { return $this->headersGrade; }
+    public function setCheckDetails(array $availability, array $ssl, array $headers): static
+    {
+        $this->httpStatusCode = $availability['http_code'] ?? null;
+        $this->responseTimeMs = $availability['response_time_ms'] ?? null;
+        $this->finalUrl = $availability['final_url'] ?? null;
+        $this->pageTitle = $availability['page_title'] ?? null;
+        $this->sslIssuer = $ssl['issuer'] ?? null;
+        $this->sslExpiresAt = $ssl['expires_at'] ?? null;
+        $this->securityHeadersPresent = $headers['present'] ?? [];
+        $this->securityHeadersMissing = $headers['missing'] ?? [];
+        $this->headersScore = $headers['score'] ?? null;
+        $this->headersGrade = $headers['grade'] ?? null;
+        return $this;
+    }
 }

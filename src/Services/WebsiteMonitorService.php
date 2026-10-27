@@ -37,14 +37,19 @@ class WebsiteMonitorService
     /**
      * Checks whether the site is reachable and returns basic availability info.
      *
-     * @return array{status: string, http_code: int|null, response_time_ms: int|null, error: string|null}
+     * @return array{status: string, http_code: int|null, response_time_ms: int|null, final_url: string|null, page_title: string|null, error: string|null}
      */
     public function checkAvailability(string $url): array
     {
         $start = microtime(true);
+        $finalUrl = $url;
 
         try {
-            $response = $this->httpClient->request('GET', $url);
+            $response = $this->httpClient->request('GET', $url, [
+                'on_stats' => static function (\GuzzleHttp\TransferStats $stats) use (&$finalUrl): void {
+                    $finalUrl = (string) $stats->getEffectiveUri();
+                },
+            ]);
             $elapsedMs = (int) round((microtime(true) - $start) * 1000);
             $statusCode = $response->getStatusCode();
 
@@ -60,6 +65,8 @@ class WebsiteMonitorService
                 'status'           => $statusCode < 500 ? 'Online' : 'Offline',
                 'http_code'        => $statusCode,
                 'response_time_ms' => $elapsedMs,
+                'final_url'        => $finalUrl,
+                'page_title'       => $this->extractPageTitle((string) $response->getBody()),
                 'error'            => null,
             ];
         } catch (\Throwable $e) {
@@ -74,6 +81,8 @@ class WebsiteMonitorService
                 'status'           => 'Offline',
                 'http_code'        => null,
                 'response_time_ms' => null,
+                'final_url'        => null,
+                'page_title'       => null,
                 'error'            => $e->getMessage(),
             ];
         }
@@ -158,9 +167,9 @@ class WebsiteMonitorService
         return [
             'status'          => $isValid ? 'Valid' : 'Expired',
             'valid'           => $isValid,
-            'expires_at'      => $expiresAt->format('Y-m-d H:i:s'),
             'expires_in_days' => max($daysUntilExpiry, 0),
             'issuer'          => $certInfo['issuer']['O'] ?? ($certInfo['issuer']['CN'] ?? null),
+            'expires_at'      => $expiresAt->format(DATE_ATOM),
             'error'           => null,
         ];
     }
@@ -189,6 +198,7 @@ class WebsiteMonitorService
                 'grade'   => 'F',
                 'present' => [],
                 'missing' => $expectedHeaders,
+                'headers' => [],
                 'error'   => $e->getMessage(),
             ];
         }
@@ -218,6 +228,14 @@ class WebsiteMonitorService
             'grade'   => $grade,
             'present' => $present,
             'missing' => $missing,
+            'headers' => array_combine($expectedHeaders, array_map(static fn (string $name): bool => in_array($name, $present, true), $expectedHeaders)),
         ];
+    }
+
+    private function extractPageTitle(string $html): ?string
+    {
+        if (preg_match('/<title\b[^>]*>(.*?)<\/title\s*>/is', $html, $matches) !== 1) return null;
+        $title = trim(html_entity_decode(strip_tags($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        return $title === '' ? null : mb_substr($title, 0, 255);
     }
 }

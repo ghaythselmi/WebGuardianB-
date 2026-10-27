@@ -140,6 +140,12 @@ class WebsiteController extends AbstractController
             'id' => $website->getId(), 'url' => $website->getUrl(),
             'availability' => $website->getAvailabilty(), 'ssl_status' => $website->getSSLStatus(),
             'expires_in' => $website->getExpiresIn(), 'last_check' => $website->getLastCheck()?->format('Y-m-d H:i:s'),
+            'http_status_code' => $website->getHttpStatusCode(), 'response_time_ms' => $website->getResponseTimeMs(),
+            'final_url' => $website->getFinalUrl(), 'page_title' => $website->getPageTitle(),
+            'ssl_issuer' => $website->getSslIssuer(), 'ssl_expires_at' => $website->getSslExpiresAt(),
+            'security_headers_present' => $website->getSecurityHeadersPresent(),
+            'security_headers_missing' => $website->getSecurityHeadersMissing(),
+            'headers_score' => $website->getHeadersScore(), 'headers_grade' => $website->getHeadersGrade(),
             'user' => $website->getUser()?->getId(), 'user_id' => $website->getUser()?->getId(),
         ];
     }

@@ -55,10 +55,14 @@ class WebsiteMonitorRunner
         $website->setAvailabilty($newState)
             ->setSSLStatus($ssl['status'])
             ->setExpiresIn((int) ($ssl['expires_in_days'] ?? 0))
-            ->setLastCheck(new \DateTime());
+            ->setLastCheck(new \DateTime())
+            ->setCheckDetails($availability, $ssl, $headers);
         $this->entityManager->persist(new WebsiteCheck(
             $website, $newState, $availability['http_code'], $availability['response_time_ms'],
-            $ssl['status'], $ssl['expires_in_days'] ?? null, $headers['score'], $headers['grade']
+            $ssl['status'], $ssl['expires_in_days'] ?? null, $headers['score'], $headers['grade'],
+            $availability['final_url'] ?? null, $availability['page_title'] ?? null,
+            $ssl['issuer'] ?? null, $ssl['expires_at'] ?? null,
+            $headers['present'] ?? [], $headers['missing'] ?? []
         ));
 
         if ($initialCheck) return;
