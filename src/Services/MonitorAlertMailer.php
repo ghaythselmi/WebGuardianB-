@@ -15,32 +15,21 @@ class MonitorAlertMailer
         private readonly KernelInterface $kernel,
     ) {}
 
+    public function sendPasswordReset(User $user, string $resetUrl): void
+    {
+        $mail = $this->createMail();
+        $mail->addAddress((string) $user->getEmail(), (string) $user->getUsername());
+        $mail->Subject = 'Reset your WebGuardian password';
+        $context = ['username' => (string) $user->getUsername(), 'resetUrl' => $resetUrl, 'expiresInMinutes' => 60];
+        $mail->isHTML(true);
+        $mail->Body = $this->twig->render('emails/password_reset.html.twig', $context);
+        $mail->AltBody = $this->twig->render('emails/password_reset.txt.twig', $context);
+        $mail->send();
+    }
+
     public function send(User $user, Website $website, string $subject, string $message): void
     {
-        $host = $this->env('MAIL_HOST', 'smtp.gmail.com');
-        $from = $this->env('MAIL_FROM_ADDRESS', 'webguardianweb@gmail.com');
-
-        $mail = new PHPMailer(true);
-        $mail->Timeout = 10;
-        $mail->isSMTP();
-        $mail->Host = $host;
-        $mail->Port = (int) $this->env('MAIL_PORT', '587');
-        $username = $this->env('MAIL_USERNAME', $from);
-        if ($username !== '') {
-            $password = $this->env('MAIL_PASSWORD', '');
-            if ($password === '') {
-                throw new \RuntimeException('Set MAIL_PASSWORD to a Google app password for webguardianweb@gmail.com before sending email alerts.');
-            }
-            $mail->SMTPAuth = true;
-            $mail->Username = $username;
-            $mail->Password = $password;
-        }
-        $encryption = strtolower($this->env('MAIL_ENCRYPTION', 'tls'));
-        if ($encryption === 'tls') $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        elseif ($encryption === 'ssl') $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-        elseif ($encryption !== 'none') throw new \RuntimeException('MAIL_ENCRYPTION must be tls, ssl, or none.');
-        $mail->CharSet = 'UTF-8';
-        $mail->setFrom($from, $this->env('MAIL_FROM_NAME', 'WebGuardian'));
+        $mail = $this->createMail();
         $mail->addAddress((string) $user->getEmail(), (string) $user->getUsername());
         $mail->Subject = $subject;
         $context = $this->buildEmailContext($website, $subject, $message);
@@ -53,6 +42,31 @@ class MonitorAlertMailer
             $mail->addEmbeddedImage($logoPath, 'webguardian-shield', 'webguardian-neon-shield-mark.png', 'base64', 'image/png');
         }
         $mail->send();
+    }
+
+    private function createMail(): PHPMailer
+    {
+        $from = $this->env('MAIL_FROM_ADDRESS', 'webguardianweb@gmail.com');
+        $mail = new PHPMailer(true);
+        $mail->Timeout = 10;
+        $mail->isSMTP();
+        $mail->Host = $this->env('MAIL_HOST', 'smtp.gmail.com');
+        $mail->Port = (int) $this->env('MAIL_PORT', '587');
+        $username = $this->env('MAIL_USERNAME', $from);
+        if ($username !== '') {
+            $password = $this->env('MAIL_PASSWORD', '');
+            if ($password === '') throw new \RuntimeException('Set MAIL_PASSWORD to configure email delivery.');
+            $mail->SMTPAuth = true;
+            $mail->Username = $username;
+            $mail->Password = $password;
+        }
+        $encryption = strtolower($this->env('MAIL_ENCRYPTION', 'tls'));
+        if ($encryption === 'tls') $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        elseif ($encryption === 'ssl') $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        elseif ($encryption !== 'none') throw new \RuntimeException('MAIL_ENCRYPTION must be tls, ssl, or none.');
+        $mail->CharSet = 'UTF-8';
+        $mail->setFrom($from, $this->env('MAIL_FROM_NAME', 'WebGuardian'));
+        return $mail;
     }
 
     private function buildEmailContext(Website $website, string $subject, string $message): array
