@@ -52,5 +52,6 @@
 /.web-server-pid
 
 # Local environment overrides and secrets
+/.env
 /.env.local
 /.env.*.local
