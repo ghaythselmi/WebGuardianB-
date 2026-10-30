@@ -21,6 +21,9 @@ class User
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
+    #[ORM\Column(length: 255, nullable: true, unique: true)]
+    private ?string $googleSubject = null;
+
    
 
     #[ORM\Column(length: 255)]
@@ -68,6 +71,17 @@ class User
     public function setPassword(string $password): static
     {
         $this->password = $password;
+        return $this;
+    }
+
+    public function getGoogleSubject(): ?string
+    {
+        return $this->googleSubject;
+    }
+
+    public function setGoogleSubject(?string $googleSubject): static
+    {
+        $this->googleSubject = $googleSubject;
         return $this;
     }
 

@@ -8,6 +8,7 @@ use App\Service\AuthTokenService;
 use App\Services\MonitorAlertMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Google\Auth\AccessToken as GoogleAccessToken;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,73 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/user')]
 class UserController extends AbstractController
 {
+    #[Route('/google-login', name: 'app_user_google_login', methods: ['POST'])]
+    public function googleLogin(Request $request, UserRepository $users, AuthTokenService $tokens, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $clientId = $this->env('GOOGLE_CLIENT_ID', '');
+        if ($clientId === '') {
+            return new JsonResponse(['error' => 'Google sign-in is not configured on this server'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data) || !is_string($data['credential'] ?? null) || $data['credential'] === '') {
+            return new JsonResponse(['error' => 'A Google credential is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $verificationDiagnostic = null;
+        try {
+            $claims = (new GoogleAccessToken())->verify($data['credential'], ['audience' => $clientId, 'throwException' => true]);
+        } catch (\Throwable $exception) {
+            $verificationDiagnostic = $exception::class.': '.$exception->getMessage();
+            $claims = false;
+        }
+        if (!is_array($claims)) {
+            $verificationDiagnostic ??= 'Google returned an invalid or expired ID token.';
+        } elseif (!is_string($claims['sub'] ?? null)) {
+            $verificationDiagnostic = 'The verified ID token has no subject claim.';
+        } elseif (!is_string($claims['email'] ?? null) || !filter_var($claims['email'], FILTER_VALIDATE_EMAIL)) {
+            $verificationDiagnostic = 'The verified ID token has no valid email claim.';
+        } elseif (($claims['email_verified'] ?? false) !== true) {
+            $verificationDiagnostic = 'Google did not mark the email address as verified.';
+        }
+        if ($verificationDiagnostic !== null) {
+            $response = ['error' => 'Google could not verify this sign-in. Please try again.'];
+            if ($this->getParameter('kernel.environment') === 'dev') $response['diagnostic'] = $verificationDiagnostic;
+            return new JsonResponse($response, Response::HTTP_UNAUTHORIZED);
+        }
+
+        $googleSubject = $claims['sub'];
+        $email = strtolower(trim($claims['email']));
+        $user = $users->findOneBy(['googleSubject' => $googleSubject]);
+        if (!$user) {
+            $user = $users->findOneBy(['email' => $email]);
+            if ($user && $user->getGoogleSubject() !== null && !hash_equals($user->getGoogleSubject(), $googleSubject)) {
+                return new JsonResponse(['error' => 'This email is already linked to another Google account. Sign in with your password first.'], Response::HTTP_CONFLICT);
+            }
+
+            if (!$user) {
+                $displayName = trim((string) ($claims['name'] ?? ''));
+                if ($displayName === '') $displayName = strstr($email, '@', true) ?: 'WebGuardian user';
+                $shortName = iconv_substr($displayName, 0, 255, 'UTF-8');
+                $user = (new User())
+                    ->setUsername($shortName !== false && $shortName !== '' ? $shortName : 'WebGuardian user')
+                    ->setEmail($email)
+                    ->setPassword(password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT))
+                    ->setRole('ROLE_USER');
+                $entityManager->persist($user);
+            }
+            $user->setGoogleSubject($googleSubject);
+            $entityManager->flush();
+        }
+
+        return new JsonResponse([
+            'token' => $tokens->issue($user),
+            'tokenType' => 'Bearer',
+            'expiresIn' => 3600,
+            'user' => $this->serializeUser($user),
+        ]);
+    }
+
     #[Route('/forgot-password', name: 'app_user_forgot_password', methods: ['POST'])]
     public function forgotPassword(Request $request, UserRepository $users, Connection $connection, MonitorAlertMailer $mailer): JsonResponse
     {
